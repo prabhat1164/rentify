@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rentify|Feeds</title>
+  <link rel="stylesheet" href="/stylesheets/profile.css">
+  <script src="https://cdn.tailwindcss.com/3.4.3"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <style>
+    /*  styles for dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+</head>
+<header>
+  <div class="w-full px-10 py-3 flex justify-between bg-zinc-800 text-white">
+    <img class="w-20 h-10 rounded-lg" src="images/rentify.png" alt="Rentify">
+    <div class="flex gap-10 items-center">
+      <a href="/profile">Profile</a>
+      <a href="/feeds">Feeds</a>
+      <div class="dropdown">
+        <button class="px-3 py-2 bg-red-700 text-white rounded-lg">Sort By</button>
+        <div class="dropdown-content">
+          <a href="/sortBy/bedrooms">Bedroom</a>
+          <a href="/sortBy/bathrooms">Bathroom</a>
+          <a href="/sortBy/rent">Rent</a>
+        </div>
+      </div>
+      <a class="px-3 py-2 bg-red-700 text-white rounded-lg" href="/logout">Logout</a>
+    </div>
+  </div>
+</header>
+<body>
+    <div class="profile w-full min-h-screen bg-zinc-800 text-white pt-1">
+      <div class="cards flex flex-wrap gap-10 px-10 mt-10">
+        <% posts.forEach((post, index) => { %>
+        <div class="card w-80 bg-black shadow-md rounded-lg overflow-hidden">
+          <div class="w-full h-50 bg-zinc-200">
+            <img class="w-full h-full object-cover" src="/images/uploads/<%= post.image ? post.image : 'NoImage.png'%>" alt="Property Image">
+          </div>
+          <div class="p-4">
+            <h3 class="text-xl font-semibold mt-3"><%= post.title %></h3>
+            <p class="text-sm font-medium opacity-60">Place: <%= post.place %></p>
+            <p class="text-sm font-medium opacity-60">Area: <%= post.area %> sqft</p>
+            <p class="text-sm font-medium opacity-60">Bedrooms: <%= post.bedrooms %></p>
+            <p class="text-sm font-medium opacity-60">Bathrooms: <%= post.bathrooms %></p>
+            <p class="text-sm font-medium opacity-60">Nearby Hospital: <%= post.nearbyHospital %> km</p>
+            <p class="text-sm font-medium opacity-60">Nearby Mall: <%= post.nearbyMall %> km</p>
+            <p class="text-sm font-medium opacity-60">Nearby College: <%= post.nearbyCollege %> km</p>
+            <p class="text-lg font-semibold mt-2">Rent: $<%= post.rent %>/month</p>
+  
+            <!-- I'm Interested Button -->
+            <button class="mt-4 px-4 py-2 bg-red-600 text-white rounded-md focus:outline-none focus:bg-red-700 interested-button" data-post-id="<%= post._id %>" data-post-user="<%= post.user %>">
+                I'm Interested
+              </button>
+  
+            <div class="flex items-center mt-2">
+              <button class="mr-2 focus:outline-none like-button" data-post-id="<%= post._id %>">
+                <i class="ri-heart-line like-icon <%= user ? post.likes.includes(user._id) ? 'text-red-500' : '': '' %>"></i>
+              </button>
+              <span class="text-sm font-medium opacity-60">Likes: <span class="like-count"><%= post.likes.length %></span></span>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+  
+    <!-- JavaScript for Like and interested button Functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          // Get all like buttons
+
+          const isLoggedIn = <%= user ? 'true' : 'false' %>;
+          const currentUserId = "<%= user ? user._id : '' %>";
+
+          const likeButtons = document.querySelectorAll('.like-button');
+    
+          // Loop through each like button
+          likeButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+              if (!isLoggedIn) {
+                window.location.href = '/login';
+                return;
+              }
+              const postId = button.getAttribute('data-post-id');
+              const icon = button.querySelector('.like-icon');
+              const likeCount = button.parentElement.querySelector('.like-count');
+    
+              icon.classList.toggle('text-red-500');
+    
+              let currentLikes = parseInt(likeCount.textContent);
+    
+              if (icon.classList.contains('text-red-500')) {
+                currentLikes++;
+              } else {
+                currentLikes--;
+              }
+    
+              likeCount.textContent = currentLikes;
+    
+              // Making an AJAX request to update the like in the backend
+              try {
+                const response = await fetch(`/updatePostLike/${postId}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+    
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+    
+                const data = await response.json();
+                console.log(data.message);
+    
+              } catch (error) {
+                console.error('Error updating post like:', error);
+              }
+            });
+          });
+    
+          // Get all interested buttons
+          const interestedButtons = document.querySelectorAll('.interested-button');
+    
+          // Loop through each interested button
+          interestedButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+              if (!isLoggedIn) {
+                window.location.href = '/login';
+                return;
+              }
+              const postId = button.getAttribute('data-post-id');
+              const postUserId = button.getAttribute('data-post-user');
+              if (currentUserId === postUserId) {
+                alert("It's your post!");
+                return;
+              }
+              
+              // Make an AJAX request to notify interest in the backend
+              try {
+                const response = await fetch(`/interested/${postId}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+    
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+    
+                const data = await response.json();
+                console.log(data.message);
+                alert('Property and seller details have been successfully sent to you! The seller has also been notified');
+    
+              } catch (error) {
+                console.error('Error notifying interest:', error);
+              }
+            });
+          });
+        });
+      </script>
+  </body>
+  
+  
+</html>
+
+
+
+
+
+
+
+

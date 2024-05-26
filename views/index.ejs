@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rentify|Register</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="content">
+      <img src="/images/logo.png" alt="pin logo" class="img1" />
+      <p class="header">Welcome to Rentify</p>
+      <form action="/register" method="post">
+        <input type="text" name="username" placeholder="Username" class="detail" /><br />
+        <input type="email" name="email" placeholder="Email" class="detail" /><br />
+        <input type="text" name="fullname" placeholder="Full Name" class="detail" /><br />
+        <input type="password" name="password" placeholder="Password" class="detail" />
+        <input type="tel" name="contactNo" placeholder="Contact Number" class="detail" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required /><br />
+        <small>Format: 123-456-7890</small><br />
+        <h4>Select your role:</h4>
+        <label for="buyer">Buyer</label>
+        <input type="radio" id="buyer" name="role" value="buyer" required>
+        <label for="seller">Seller</label>
+        <input type="radio" id="seller" name="role" value="seller" required>
+        <input type="submit" value="Register Account" class="btn int">
+      </form>
+
+      <a href="#">Forgot your password?</a>
+      <footer>
+        <p>
+          By continuing, you agree to Rentify's
+          <b>Terms of Service, Privacy policy.</b>
+        </p>
+        <hr />
+        <a  href="/login">Already on Rentify? Login</a>
+      </footer>
+    </div>
+  </div>
+  <div class="upbtn" onclick="redirectToFeeds()">Feeds</div>
+  
+</body>
+<script>
+  function redirectToFeeds() {
+      window.location.href = '/feeds';
+  }
+</script>
+</html>
