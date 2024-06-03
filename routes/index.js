@@ -7,6 +7,10 @@ const upload = require('./multer')
 const postModel = require('./posts');
 const nodemailer = require('nodemailer');
 const { render } = require('ejs');
+const { initializeApp }= require('firebase/app')
+const config = require('../config/firebaseConfig');
+const firebaseStorage = require('firebase/storage');
+const { v4: uuidv4 } = require('uuid');
 
 passport.use(new localStrategy(userModel.authenticate()));
 
@@ -18,6 +22,13 @@ const transporter = nodemailer.createTransport({
     pass: process.env.GMAIL_PASS  
   }
 });
+
+//Initialize a firebase application
+initializeApp(config.firebaseConfig);
+
+// Initialize Cloud Storage and get a reference to the service
+const storage = firebaseStorage.getStorage();
+
 
 
 router.get('/', function(req, res, next) {
@@ -75,10 +86,31 @@ router.post('/dpupload', isLoggedIN, upload.single('file'), async function (req,
   if(!req.file){
     return res.status(400).send('No files uploaded');
   }
-  const user = await userModel.findOne({username: req.session.passport.user});
-  user.dp = req.file.filename;
-  await user.save();
-  res.redirect('/profile')
+  try {
+    const uniqueSuffix = uuidv4();
+    const storageRef = firebaseStorage.ref(storage, `uploads/${req.file.originalname + "  " + uniqueSuffix}`);
+    const metadata = {
+      contentType: req.file.mimetype,
+    }
+    // Upload the file in the bucket storage
+    const snapshot = await firebaseStorage.uploadBytesResumable(storageRef, req.file.buffer, metadata);
+    //by using uploadBytesResumable we can control the progress of uploading like pause, resume, cancel
+    // Grab the public url
+    const downloadURL = await firebaseStorage.getDownloadURL(snapshot.ref);
+    const data = {
+      message: 'file uploaded to firebase storage',
+      name: req.file.originalname,
+      type: req.file.mimetype,
+      downloadURL: downloadURL
+    };
+    console.log(data);
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    user.dp = downloadURL;
+    await user.save();
+    res.redirect('/profile')
+  } catch (error) {
+    render('error', { error })
+  }
 })
 
 router.get('/uploadpost', isLoggedIN, function (req, res, next) {
@@ -90,23 +122,45 @@ router.post('/upload', isLoggedIN, upload.single('file'), async function (req, r
   if(!req.file){
     return res.status(400).send('No files uploaded');
   }
-  const user = await userModel.findOne({username: req.session.passport.user});
-  const post = await postModel.create({
-    image: req.file.filename,
-    title: req.body.title,
-    place: req.body.place,
-    area: req.body.area,
-    bedrooms: req.body.bedrooms,
-    nearbyMall: req.body.nearbyMall,
-    bathrooms: req.body.bathrooms,
-    nearbyHospital: req.body.nearbyHospital,
-    nearbyCollege: req.body.nearbyCollege,
-    rent: req.body.rent,
-    user: user._id
-  })
-  user.posts.push(post._id);
-  await user.save();
-  res.redirect('/profile')
+
+  try {
+    const uniqueSuffix = uuidv4();
+    const storageRef = firebaseStorage.ref(storage, `uploads/${req.file.originalname + "  " + uniqueSuffix}`);
+    const metadata = {
+      contentType: req.file.mimetype,
+    }
+    // Upload the file in the bucket storage
+    const snapshot = await firebaseStorage.uploadBytesResumable(storageRef, req.file.buffer, metadata);
+    //by using uploadBytesResumable we can control the progress of uploading like pause, resume, cancel
+    // Grab the public url
+    const downloadURL = await firebaseStorage.getDownloadURL(snapshot.ref);
+    const data = {
+      message: 'file uploaded to firebase storage',
+      name: req.file.originalname,
+      type: req.file.mimetype,
+      downloadURL: downloadURL
+    };
+    console.log(data);
+    const user = await userModel.findOne({username: req.session.passport.user});
+    const post = await postModel.create({
+      image: downloadURL,
+      title: req.body.title,
+      place: req.body.place,
+      area: req.body.area,
+      bedrooms: req.body.bedrooms,
+      nearbyMall: req.body.nearbyMall,
+      bathrooms: req.body.bathrooms,
+      nearbyHospital: req.body.nearbyHospital,
+      nearbyCollege: req.body.nearbyCollege,
+      rent: req.body.rent,
+      user: user._id
+    })
+    user.posts.push(post._id);
+    await user.save();
+    res.redirect('/profile')
+  } catch (error) {
+    render('error', { error })
+  }
 })
 
 //Edit Profile
@@ -282,21 +336,42 @@ router.get('/updatePost/:postId', isLoggedIN, async (req, res) =>{
 })
 
 router.post('/updatePost/:postId',upload.single('file'), isLoggedIN, async (req, res, next) =>{
-  const post = await postModel.findById(req.params.postId);
-  post.title = req.body.title;
-  post.place = req.body.place;
-  post.area = req.body.area;
-  post.nearbyCollege = req.body.nearbyCollege;
-  post.nearbyHospital = req.body.nearbyHospital;
-  post.nearbyMall = req.body.nearbyMall;
-  post.bedrooms = req.body.bedrooms;
-  post.bathrooms = req.body.bathrooms;
-  post.rent = req.body.rent;
-  if(req.file.filename){
-    post.image = req.file.filename;
+  try {
+    const post = await postModel.findById(req.params.postId);
+    post.title = req.body.title;
+    post.place = req.body.place;
+    post.area = req.body.area;
+    post.nearbyCollege = req.body.nearbyCollege;
+    post.nearbyHospital = req.body.nearbyHospital;
+    post.nearbyMall = req.body.nearbyMall;
+    post.bedrooms = req.body.bedrooms;
+    post.bathrooms = req.body.bathrooms;
+    post.rent = req.body.rent;
+    if(req && req.file && req.file.originalname){
+      const uniqueSuffix = uuidv4();
+      const storageRef = firebaseStorage.ref(storage, `uploads/${req.file.originalname + "  " + uniqueSuffix}`);
+      const metadata = {
+        contentType: req.file.mimetype,
+      }
+      // Upload the file in the bucket storage
+      const snapshot = await firebaseStorage.uploadBytesResumable(storageRef, req.file.buffer, metadata);
+      //by using uploadBytesResumable we can control the progress of uploading like pause, resume, cancel
+      // Grab the public url
+      const downloadURL = await firebaseStorage.getDownloadURL(snapshot.ref);
+      const data = {
+        message: 'file uploaded to firebase storage',
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        downloadURL: downloadURL
+      };
+      post.image = downloadURL;
+      console.log(data);
+    }
+    await post.save();
+    res.redirect('/profile');
+  } catch (error) {
+    render('error', { error })
   }
-  await post.save();
-  res.redirect('/profile');
 })
 
 router.get('/sortBy/:sortkey', isLoggedIN, async (req,res)=>{

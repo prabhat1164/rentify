@@ -31,7 +31,7 @@
           <i id="uploadicon" class="text-zinc-800 ri-pencil-fill"></i>
         </span>
         <div class="w-32 h-32 bg-zinc-200 rounded-full overflow-hidden">
-          <img class="w-full h-full object-cover" src="/images/uploads/<%= user.dp %>" alt="">
+          <img class="w-full h-full object-cover" src="<%= user.dp %>" alt="">
         </div>
       </div>
       <h1 class="text-3xl font-semibold mt-5">
@@ -51,7 +51,7 @@
       <% user.posts.forEach((post, index) => { %>
       <div class="card w-80 bg-black shadow-md rounded-lg overflow-hidden">
         <div class="w-full h-50 bg-zinc-200">
-          <img class="w-full h-full object-cover" src="/images/uploads/<%= post.image ? post.image : 'NoImage.png'%>" alt="Property Image">
+          <img class="w-full h-full object-cover" src="<%= post.image ? post.image : 'NoImage.png'%>" alt="Property Image">
         </div>
         <div class="p-4">
           <h3 class="text-xl font-semibold mt-3"><%= post.title %></h3>
